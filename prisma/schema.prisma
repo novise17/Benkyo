@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CardType {
+  BASIC
+  CLOZE
+  PROBLEM
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String?   @unique
+  password  String?   @map("password_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  settings  Json?
+  decks     Deck[]    @relation("UserDecks")
+  reviews   Review[]
+  media     Media[]
+  syncNodes SyncNode[]
+}
+
+model Deck {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @db.Uuid
+  user        User?    @relation(fields: [userId], references: [id], name: "UserDecks")
+  title       String?
+  description String?
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  cards       Card[]
+  problems    Problem[]
+}
+
+model Card {
+  id        String   @id @default(uuid()) @db.Uuid
+  deckId    String?  @db.Uuid
+  deck      Deck?    @relation(fields: [deckId], references: [id])
+  cardType  CardType @default(BASIC) @map("card_type")
+  front     Json?
+  back      Json?
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  reviews   Review[]
+}
+
+model Review {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  cardId    String   @db.Uuid
+  card      Card     @relation(fields: [cardId], references: [id])
+  rating    Int?
+  ef        Float?
+  interval  Int?
+  reps      Int?
+  lapses    Int?
+  due       DateTime?
+  createdAt DateTime @default(now()) @map("created_at")
+}
+
+model Problem {
+  id        String   @id @default(uuid()) @db.Uuid
+  deckId    String?  @db.Uuid
+  deck      Deck?    @relation(fields: [deckId], references: [id])
+  title     String?
+  body      Json?
+  hints     Json?
+  solution  Json?
+  difficulty Float?
+  createdAt DateTime @default(now()) @map("created_at")
+}
+
+model Media {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id])
+  url       String?
+  mime      String?
+  createdAt DateTime @default(now()) @map("created_at")
+}
+
+model SyncNode {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String?  @db.Uuid
+  user         User?    @relation(fields: [userId], references: [id])
+  deviceId     String?  @map("device_id")
+  lastSyncedAt DateTime? @map("last_synced_at")
+}
